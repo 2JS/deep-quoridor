@@ -1,5 +1,5 @@
 import random
-from quoridor import QuoridorEnv
+from quoridor import QuoridorEnv, ActionError
 
 def human_input_to_move(human_input):
     tokens = human_input.split()
@@ -22,29 +22,34 @@ def main():
         env.print_board()
         print(f"Player {player_turn + 1}'s turn")
 
-        # if player_turn == 0:  # Human player
         while True:
-            try:
-                human_input = input("Enter your move (x y) or fence (x y h/v): ").strip()
-                move = human_input_to_move(human_input)
-                if isinstance(move, tuple) and len(move) == 2:  # Pawn move
-                    if env.is_valid_move(player_turn, move):
-                        env.move_pawn(player_turn, move)
-                        break
-                elif len(move) == 3:  # Fence placement
-                    x, y, orientation = move
-                    if env.is_valid_fence_placement(player_turn, (x, y), orientation):
-                        env.place_fence(player_turn, (x, y), orientation)
-                        break
-                print("Invalid move. Please try again.")
-            except ValueError as e:
-                print(e)
+            if player_turn == 0:  # Human player
+                try:
+                    human_input = input("Enter your move (x y) or fence (x y h/v): ").strip()
+                    move = human_input_to_move(human_input)
+                    if isinstance(move, tuple) and len(move) == 2:  # Pawn move
+                        action = ('move', move)
+                    elif len(move) == 3:  # Fence placement
+                        x, y, orientation = move
+                        action = ('fence', ((x, y), orientation))
+                    env.step(action)
+                    break
 
-        # else:  # Bot player (random moves)
-        #     valid_moves = env.get_valid_pawn_moves(player_turn)
-        #     move = random.choice(valid_moves)
-        #     env.move_pawn(player_turn, move)
-        #     print(f"Bot moved to {move}")
+                except ActionError as e:
+                    print(e)
+
+                except ValueError as e:
+                    print(e)
+
+            else:  # Bot player (random moves)
+                try:
+                    action = env.sample_action(valid_only=False)
+                    env.step(action)
+                    print(action)
+                    break
+
+                except ActionError:
+                    pass
 
         player_turn = 1 - player_turn  # Switch turns
 

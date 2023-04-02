@@ -6,6 +6,10 @@ import torch
 import torch.nn.functional as F
 
 
+class ActionError(Exception):
+    pass
+
+
 class QuoridorEnv:
     def __init__(self):
         self.board_size = 9
@@ -40,8 +44,9 @@ class QuoridorEnv:
             self.board[self.player_positions[player]] = 0
             self.board[new_position] = player + 1
             self.player_positions[player] = new_position
-            return True
-        return False
+            return
+
+        raise ActionError(f"Invalid move from {self.player_positions[player]} to {new_position}")
 
     @torch.no_grad()
     def place_fence(self, player, fence_position, fence_orientation):
@@ -52,8 +57,9 @@ class QuoridorEnv:
             else:
                 self.fences[x, y] |= 2
             self.fence_counts[player] -= 1
-            return True
-        return False
+            return
+
+        raise ActionError(f"Invalid fence placement at {fence_position} with orientation {fence_orientation}")
 
     @torch.no_grad()
     def step(self, action):
@@ -63,14 +69,14 @@ class QuoridorEnv:
         action_type, action_data = action
 
         if action_type == "move":
-            if self.move_pawn(self.current_player, action_data):
-                if self.has_won(self.current_player):
-                    self.done = True
-                else:
-                    self.current_player = 1 - self.current_player
+            self.move_pawn(self.current_player, action_data)
+            if self.has_won(self.current_player):
+                self.done = True
+                return
         elif action_type == "fence":
-            if self.place_fence(self.current_player, *action_data):
-                self.current_player = 1 - self.current_player
+            self.place_fence(self.current_player, *action_data)
+
+        self.current_player = 1 - self.current_player
 
     # Add methods for checking valid moves, fence placements, winning conditions, etc.
     # These methods should include `is_valid_move`, `is_valid_fence_placement`, `has_won`, and any other
@@ -218,28 +224,30 @@ class QuoridorEnv:
         return True
 
     @torch.no_grad()
-    def sample_action(self):
+    def sample_action(self, valid_only=True):
         if self.fence_counts[self.current_player] > 0 and random.random() < 0.5:
             x, y = self.player_positions[self.current_player]
 
             moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
-            moves = [(dx, dy) for dx, dy in moves if self.is_valid_move(self.current_player, (x + dx, y + dy))]
+            moves = [(x + dx, y + dy) for dx, dy in moves if self.is_valid_move(self.current_player, (x + dx, y + dy))]
 
-            return random.choice(moves)
+            return ("move", random.choice(moves))
         else:
             fences = [
-                (x, y, o)
+                ((x, y), o)
                 for x in range(self.board_size - 1)
                 for y in range(self.board_size - 1)
                 for o in ("h", "v")
             ]
 
+            if not valid_only:
+                return ("fence", random.choice(fences))
+
             while True:
                 fence = random.choice(fences)
-                x, y, o = fence
-                if self.is_valid_fence_placement(self.current_player, (x, y), o):
-                    return fence
+                if self.is_valid_fence_placement(self.current_player, *fence):
+                    return ("fence", fence)
 
     # Check if the player has reached the opposite side
     @torch.no_grad()
