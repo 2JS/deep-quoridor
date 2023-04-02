@@ -1,4 +1,5 @@
 from collections import deque
+import random
 
 # import numpy as np
 import torch
@@ -195,7 +196,6 @@ class QuoridorEnv:
     def paths_exist(self):
         checked = []
         for player in (0, 1):
-            print(player)
             visited = torch.zeros((self.board_size, self.board_size), dtype=bool)
             queue = deque([self.player_positions[player]])
             visited[self.player_positions[player]] = True
@@ -216,6 +216,30 @@ class QuoridorEnv:
                 return False
 
         return True
+
+    @torch.no_grad()
+    def sample_action(self):
+        if self.fence_counts[self.current_player] > 0 and random.random() < 0.5:
+            x, y = self.player_positions[self.current_player]
+
+            moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+
+            moves = [(dx, dy) for dx, dy in moves if self.is_valid_move(self.current_player, (x + dx, y + dy))]
+
+            return random.choice(moves)
+        else:
+            fences = [
+                (x, y, o)
+                for x in range(self.board_size - 1)
+                for y in range(self.board_size - 1)
+                for o in ("h", "v")
+            ]
+
+            while True:
+                fence = random.choice(fences)
+                x, y, o = fence
+                if self.is_valid_fence_placement(self.current_player, (x, y), o):
+                    return fence
 
     # Check if the player has reached the opposite side
     @torch.no_grad()
