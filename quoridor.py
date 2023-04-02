@@ -11,6 +11,7 @@ class QuoridorEnv:
         self.num_fences = 10
         self.reset()
 
+    @torch.no_grad()
     def reset(self):
         self.board = torch.zeros(self.board_size, self.board_size, dtype=torch.int8)
         self.fences = torch.zeros(
@@ -32,6 +33,7 @@ class QuoridorEnv:
         # the board, the fence positions, and the remaining fence counts
         return self.current_player, self.board, self.fences, tuple(self.fence_counts)
 
+    @torch.no_grad()
     def move_pawn(self, player, new_position):
         if self.is_valid_move(player, new_position):
             self.board[self.player_positions[player]] = 0
@@ -40,6 +42,7 @@ class QuoridorEnv:
             return True
         return False
 
+    @torch.no_grad()
     def place_fence(self, player, fence_position, fence_orientation):
         if self.is_valid_fence_placement(player, fence_position, fence_orientation):
             x, y = fence_position
@@ -51,6 +54,7 @@ class QuoridorEnv:
             return True
         return False
 
+    @torch.no_grad()
     def step(self, action):
         # action is a tuple: (action_type, action_data)
         # action_type is either 'move' or 'fence'
@@ -71,6 +75,7 @@ class QuoridorEnv:
     # These methods should include `is_valid_move`, `is_valid_fence_placement`, `has_won`, and any other
     # required helper functions to determine the legality of actions and the game state.
 
+    @torch.no_grad()
     def is_blocked(self, position, direction):
         x, y = position
         dx, dy = direction
@@ -96,6 +101,7 @@ class QuoridorEnv:
         return False
 
     # Check if the given move is valid
+    @torch.no_grad()
     def is_valid_move(self, player, new_position, check_opponent=True):
         opponent = 2 - player
         x, y = self.player_positions[player]
@@ -150,6 +156,7 @@ class QuoridorEnv:
         return True
 
     # Check if the given fence placement is valid
+    @torch.no_grad()
     def is_valid_fence_placement(self, player, fence_position, fence_orientation):
         if self.fence_counts[player] == 0:
             return False
@@ -184,6 +191,7 @@ class QuoridorEnv:
         return paths_exist
 
     # Check if there is a path from the player's current position to the opposite side
+    @torch.no_grad()
     def paths_exist(self):
         checked = []
         for player in (0, 1):
@@ -210,22 +218,26 @@ class QuoridorEnv:
         return True
 
     # Check if the player has reached the opposite side
+    @torch.no_grad()
     def has_won(self, player):
         _, y = self.player_positions[player]
         return y == (self.board_size - 1 if player == 0 else 0)
 
+    @torch.no_grad()
     def is_game_over(self):
         for player in range(2):
             if self.has_won(player):
                 return True
         return False
 
+    @torch.no_grad()
     def get_winner(self):
         for player in range(2):
             if self.has_won(player):
                 return player
         return None
 
+    @torch.no_grad()
     def print_board(self):
         h_fences = F.pad(self.fences, (0, 0, 1, 1)) & 1
         v_fences = F.pad(self.fences, (1, 1, 0, 0)) & 2
