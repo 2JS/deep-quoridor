@@ -245,8 +245,10 @@ class QuoridorEnv:
         h_fences = h_fences[1:, :] | h_fences[:-1, :]
         v_fences = v_fences[:, 1:] | v_fences[:, :-1]
 
+        print("  0   1   2   3   4   5   6   7   8")
+
         for y in range(self.board_size):
-            row = []
+            row = [f'{y}']
             for x in range(self.board_size):
                 if self.board[x, y] == 1:
                     row.append("1")
@@ -258,7 +260,7 @@ class QuoridorEnv:
                     row.append("|" if v_fences[x, y] else " ")
             print(" ".join(row))
             if y < self.board_size - 1:
-                fence_row = []
+                fence_row = [' ']
                 for x in range(self.board_size):
                     fence_row.append("-" if h_fences[x, y] else " ")
                     if x < self.board_size - 1:
