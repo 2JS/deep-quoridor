@@ -36,7 +36,7 @@ class QuoridorEnv:
     def get_state(self):
         # Returns the state as a tuple containing the current player,
         # the board, the fence positions, and the remaining fence counts
-        return self.current_player, self.board, self.fences, tuple(self.fence_counts)
+        return self.current_player, self.board.detach().clone(), self.fences.detach().clone(), tuple(self.fence_counts)
 
     @torch.no_grad()
     def move_pawn(self, player, new_position):
@@ -72,15 +72,13 @@ class QuoridorEnv:
             self.move_pawn(self.current_player, action_data)
             if self.has_won(self.current_player):
                 self.done = True
-                return
+                return self.get_state(), 100, True
         elif action_type == "fence":
             self.place_fence(self.current_player, *action_data)
 
         self.current_player = 1 - self.current_player
 
-    # Add methods for checking valid moves, fence placements, winning conditions, etc.
-    # These methods should include `is_valid_move`, `is_valid_fence_placement`, `has_won`, and any other
-    # required helper functions to determine the legality of actions and the game state.
+        return self.get_state(), 0, False
 
     @torch.no_grad()
     def is_blocked(self, position, direction):
