@@ -223,7 +223,7 @@ class QuoridorEnv:
 
     @torch.no_grad()
     def sample_action(self, valid_only=True):
-        if self.fence_counts[self.current_player] > 0 and random.random() < 0.5:
+        if self.fence_counts[self.current_player] == 0 or random.random() < 0.5:
             x, y = self.player_positions[self.current_player]
 
             moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
