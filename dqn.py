@@ -7,6 +7,8 @@ from model import Model as DQN  # Replace with your actual DQN model import
 from replay_buffer import ReplayBuffer  # Replace with your actual replay buffer import
 from tqdm import trange
 
+device = torch.device('cuda')
+
 # Set hyperparameters
 num_episodes = 1000
 learning_rate = 0.001
@@ -79,7 +81,7 @@ def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
     states, actions, rewards, next_states, dones = experiences
 
     # Compute Q-values for current states and next states
-    q_values = dqn(states).gather(1, actions.unsqueeze(1))
+    q_values = dqn(states.to(device)).gather(1, actions.unsqueeze(1))
     with torch.no_grad():
         next_q_values = target_net(next_states).max(1)[0].unsqueeze(1)
 
@@ -94,8 +96,8 @@ def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
 
 
 # Initialize two DQN models and target networks for each player
-dqn = [DQN(), DQN()]  # Replace with arguments as needed
-target_net = [DQN(), DQN()]  # Replace with arguments as needed
+dqn = [DQN().to(device), DQN().to(device)]  # Replace with arguments as needed
+target_net = [DQN().to(device), DQN().to(device)]  # Replace with arguments as needed
 optimizer = [optim.Adam(dqn[0].parameters(), lr=learning_rate), optim.Adam(dqn[1].parameters(), lr=learning_rate)]
 
 for player in range(2):
@@ -117,9 +119,9 @@ for episode in trange(num_episodes):
                 action = env.sample_action()
             else:
                 with torch.no_grad():
-                    action = dqn[player](state).argmax().item()
+                    action = dqn[player](state.to(device)).argmax().item()
 
-            next_state, reward, done = env.step(action)
+            next_state, reward, done = env.step(action.cpu())
 
             # Store experience in the replay buffer for the current player
             replay_buffer[player].add(state, action, reward, next_state[player], done)
@@ -128,6 +130,8 @@ for episode in trange(num_episodes):
             if len(replay_buffer[player]) > batch_size:
                 experiences = replay_buffer[player].sample(batch_size)
                 train_dqn(dqn[player], target_net[player], experiences, optimizer[player])
+            else:
+                print(len(replay_buffer[player]))
 
             # Update the target network for the current player periodically
             if episode % target_update_freq == 0:
