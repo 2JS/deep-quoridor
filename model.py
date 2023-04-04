@@ -32,6 +32,8 @@ class Module(nn.Module):
         x = self.fc1(self.flatten(x))
         x = x + self.fc2(num_fences)
 
+        torch.softmax(x, dim=1)
+
         return x
 
 
@@ -45,5 +47,4 @@ class Model(nn.Module):
 
         out = self.net(board, fence, num_fences)
 
-
-        return action
+        return out

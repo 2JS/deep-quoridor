@@ -75,6 +75,16 @@ epsilon = epsilon_start
 # # Save the trained DQN model
 # torch.save(dqn.state_dict(), "trained_dqn.pth")
 
+def index_to_action(index):
+    if index < 64:
+        return 'fence', ((index // 8, index % 8), 'v')
+    index -= 64
+    if index < 64:
+        return 'fence', ((index // 8, index % 8), 'h')
+    index -= 64
+    move = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)][index]
+    return 'move', move
+
 import torch.nn.functional as F
 
 def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
@@ -119,9 +129,10 @@ for episode in trange(num_episodes):
                 action = env.sample_action()
             else:
                 with torch.no_grad():
-                    action = dqn[player](state.to(device)).argmax().item()
+                    out = dqn[player](state.to(device)).cpu()
+                    action = out.argmax().item()
 
-            next_state, reward, done = env.step(action.cpu())
+            next_state, reward, done = env.step(action)
 
             # Store experience in the replay buffer for the current player
             replay_buffer[player].add(state, action, reward, next_state[player], done)
