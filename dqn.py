@@ -91,7 +91,7 @@ def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
     states, actions, rewards, next_states, dones = experiences
 
     # Compute Q-values for current states and next states
-    q_values = dqn(states.to(device)).gather(1, actions.unsqueeze(1))
+    q_values = dqn(states).gather(1, actions.unsqueeze(1))
     with torch.no_grad():
         next_q_values = target_net(next_states).max(1)[0].unsqueeze(1)
 

@@ -44,6 +44,9 @@ class Model(nn.Module):
 
     def forward(self, states):
         player, board, fence, num_fences = states
+        board = board.to(self.device)
+        fence = fence.to(self.device)
+        num_fences = num_fences.to(self.device)
 
         out = self.net(board, fence, num_fences)
 
