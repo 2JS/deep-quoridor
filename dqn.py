@@ -10,14 +10,14 @@ from tqdm import trange
 device = torch.device('cuda')
 
 # Set hyperparameters
-num_episodes = 1000
+num_episodes = 100000
 learning_rate = 0.001
 gamma = 0.99
 epsilon_start = 1.0
 epsilon_end = 0.01
 epsilon_decay = 0.995
 target_update_freq = 10
-batch_size = 64
+batch_size = 128
 
 # # Initialize environment, DQN model, and target network
 env = QuoridorEnv()
@@ -113,7 +113,7 @@ for player in range(2):
     target_net[player].eval()
 
 # Initialize separate replay buffers for each player
-replay_buffer = [ReplayBuffer(), ReplayBuffer()]
+replay_buffer = [ReplayBuffer(capacity=512), ReplayBuffer(512)]
 
 # Training loop
 for episode in trange(num_episodes):
