@@ -2,7 +2,7 @@ import random
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
-from quoridor import QuoridorEnv  # Replace with your actual environment import
+from quoridor import QuoridorEnv, ActionError  # Replace with your actual environment import
 from model import Model as DQN  # Replace with your actual DQN model import
 from replay_buffer import ReplayBuffer  # Replace with your actual replay buffer import
 from tqdm import trange
@@ -133,8 +133,14 @@ for episode in trange(num_episodes):
                     out = dqn[player](player, board, fence, num_fences).cpu()
                     action = env.index_to_action(player, out.argmax().item())
 
+
             player_position = env.player_positions[player]
-            next_state, reward, done = env.step(action)
+            try:
+                next_state, reward, done = env.step(action)
+            except ActionError:
+                next_state = state
+                reward = -100
+                done = True
 
             # Store experience in the replay buffer for the current player
             replay_buffer[player].add(state, env.action_to_index(player_position, action), reward, next_state, done)
