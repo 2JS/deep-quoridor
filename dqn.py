@@ -80,9 +80,9 @@ import torch.nn.functional as F
 def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
     states, actions, rewards, next_states, dones = experiences
 
-    actions = torch.tensor(actions, device=device)
-    rewards = torch.tensor(rewards, device=device)
-    dones = torch.tensor(dones, device=device).to(dtype=torch.float32)
+    actions = torch.tensor(actions, dtype=torch.int64, device=device)
+    rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
+    dones = torch.tensor(dones, dtype=torch.float32, device=device)
     # Compute Q-values for current states and next states
     states = tuple(map(lambda x: torch.stack(x).to(dtype=torch.float32, device=device), zip(*states)))
     q_values = dqn(*states).gather(1, actions.unsqueeze(1))
@@ -126,9 +126,9 @@ for episode in trange(num_episodes):
                 with torch.no_grad():
                     player, board, fence, num_fences = state
                     player = torch.tensor(player, device=device).unsqueeze(0)
-                    board = board.to(device)
-                    fence = fence.to(device)
-                    num_fences = torch.tensor(num_fences, device=device)
+                    board = board.to(dtype=torch.float32, device=device)
+                    fence = fence.to(dtype=torch.float32, device=device)
+                    num_fences = torch.tensor(num_fences, dtype=torch.float32, device=device)
 
                     out = dqn[player](player, board, fence, num_fences).cpu()
                     action = out.argmax().item()
