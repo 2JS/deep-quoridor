@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torchvision.models import resnet18
 
 
 class Module(nn.Module):
@@ -32,7 +34,30 @@ class Module(nn.Module):
         x = self.fc1(self.flatten(x))
         x = x + self.fc2(num_fences)
 
-        torch.softmax(x, dim=1)
+        return x
+
+class ResnetModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.board_conv = nn.Conv2d(1, 3, kernel_size=3, stride=1, padding=1)
+        self.fence_conv = nn.Conv2d(1, 3, kernel_size=2, stride=1, padding=1)
+        self.fence_fc = nn.Linear(2, 512)
+        self.out_fc = nn.Linear(512, 140)
+
+        self.net = resnet18(num_classes=512)
+
+    def forward(self, board, fence, num_fences):
+        board = self.board_conv(board)
+        fence = self.fence_conv(fence)
+
+        x = board + fence
+
+        x = self.net(x)
+
+        x = x + self.fence_fc(num_fences)
+        x = F.relu(x)
+
+        x = self.out_fc(x)
 
         return x
 
@@ -40,12 +65,14 @@ class Module(nn.Module):
 class Model(nn.Module):
     def __init__(self):
         super().__init__()
-        self.net = Module()
+        self.net = ResnetModule()
 
     def forward(self, player, board, fence, num_fences):
         board = board.unsqueeze(1)
         fence = fence.unsqueeze(1)
 
         out = self.net(board, fence, num_fences)
+
+        torch.softmax(out, dim=1)
 
         return out
