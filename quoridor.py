@@ -232,20 +232,23 @@ class QuoridorEnv:
 
             return ("move", random.choice(moves))
         else:
-            fences = [
-                ((x, y), o)
-                for x in range(self.board_size - 1)
-                for y in range(self.board_size - 1)
-                for o in ("h", "v")
-            ]
+            if valid_only:
+                fences = [
+                    ((x, y), o)
+                    for x in range(self.board_size - 1)
+                    for y in range(self.board_size - 1)
+                    for o in ("h", "v")
+                    if self.is_valid_fence_placement(self.current_player, (x, y), o)
+                ]
+            else:
+                fences = [
+                    ((x, y), o)
+                    for x in range(self.board_size - 1)
+                    for y in range(self.board_size - 1)
+                    for o in ("h", "v")
+                ]
 
-            if not valid_only:
-                return ("fence", random.choice(fences))
-
-            while True:
-                fence = random.choice(fences)
-                if self.is_valid_fence_placement(self.current_player, *fence):
-                    return ("fence", fence)
+            return ("fence", random.choice(fences))
 
     # Check if the player has reached the opposite side
     @torch.no_grad()
