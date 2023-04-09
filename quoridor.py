@@ -11,6 +11,21 @@ class ActionError(Exception):
 
 
 class QuoridorEnv:
+    move_to_index ={
+        ( 0,  1): 0,
+        ( 0, -1): 1,
+        ( 1,  0): 2,
+        (-1,  0): 3,
+        ( 0,  2): 4,
+        ( 0, -2): 5,
+        ( 2,  0): 6,
+        (-2,  0): 7,
+        ( 1,  1): 8,
+        ( 1, -1): 9,
+        (-1,  1): 10,
+        (-1, -1): 11
+    }
+
     def __init__(self):
         self.board_size = 9
         self.num_fences = 10
@@ -36,7 +51,12 @@ class QuoridorEnv:
     def get_state(self):
         # Returns the state as a tuple containing the current player,
         # the board, the fence positions, and the remaining fence counts
-        return self.current_player, self.board.detach().clone(), self.fences.detach().clone(), tuple(self.fence_counts)
+        return (
+            torch.tensor(self.current_player),
+            self.board.detach().clone(),
+            self.fences.detach().clone(),
+            torch.tensor(self.fence_counts)
+        )
 
     @torch.no_grad()
     def move_pawn(self, player, new_position):
@@ -220,6 +240,33 @@ class QuoridorEnv:
                 return False
 
         return True
+
+    def action_to_index(self, player_position, action):
+        if action[0] == 'fence':
+            _, ((x, y), orientation) = action
+            if orientation == 'v':
+                return x * 8 + y
+            return 64 + x * 8 + y
+        else:
+            _, (nx, ny) = action
+            x, y = player_position
+
+            dx, dy = nx - x, ny - y
+
+        return 128 + self.move_to_index[(dx, dy)]
+
+    def index_to_action(self, player, index):
+        if index < 64:
+            return 'fence', ((index // 8, index % 8), 'v')
+        index -= 64
+        if index < 64:
+            return 'fence', ((index // 8, index % 8), 'h')
+        index -= 64
+
+        dx, dy = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)][index]
+        x, y = self.player_positions[player]
+
+        return 'move', (x + dx, y + dy)
 
     @torch.no_grad()
     def sample_action(self, valid_only=True):

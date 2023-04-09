@@ -42,11 +42,9 @@ class Model(nn.Module):
         super().__init__()
         self.net = Module()
 
-    def forward(self, states):
-        player, board, fence, num_fences = states
-        board = board.to(self.device)
-        fence = fence.to(self.device)
-        num_fences = num_fences.to(self.device)
+    def forward(self, player, board, fence, num_fences):
+        board = board.unsqueeze(1)
+        fence = fence.unsqueeze(1)
 
         out = self.net(board, fence, num_fences)
 

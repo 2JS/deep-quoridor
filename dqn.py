@@ -75,25 +75,20 @@ epsilon = epsilon_start
 # # Save the trained DQN model
 # torch.save(dqn.state_dict(), "trained_dqn.pth")
 
-def index_to_action(index):
-    if index < 64:
-        return 'fence', ((index // 8, index % 8), 'v')
-    index -= 64
-    if index < 64:
-        return 'fence', ((index // 8, index % 8), 'h')
-    index -= 64
-    move = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)][index]
-    return 'move', move
-
 import torch.nn.functional as F
 
 def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
     states, actions, rewards, next_states, dones = experiences
 
+    actions = torch.tensor(actions, device=device)
+    rewards = torch.tensor(rewards, device=device)
+    dones = torch.tensor(dones, device=device).to(dtype=torch.float32)
     # Compute Q-values for current states and next states
-    q_values = dqn(states).gather(1, actions.unsqueeze(1))
+    states = tuple(map(lambda x: torch.stack(x).to(dtype=torch.float32, device=device), zip(*states)))
+    q_values = dqn(*states).gather(1, actions.unsqueeze(1))
     with torch.no_grad():
-        next_q_values = target_net(next_states).max(1)[0].unsqueeze(1)
+        next_states = tuple(map(lambda x: torch.stack(x).to(dtype=torch.float32, device=device), zip(*next_states)))
+        next_q_values = target_net(*next_states).max(1)[0].unsqueeze(1)
 
     # Compute target Q-values
     target_q_values = rewards + (gamma * next_q_values * (1 - dones))
@@ -129,13 +124,20 @@ for episode in trange(num_episodes):
                 action = env.sample_action()
             else:
                 with torch.no_grad():
-                    out = dqn[player](state.to(device)).cpu()
+                    player, board, fence, num_fences = state
+                    player = torch.tensor(player, device=device).unsqueeze(0)
+                    board = board.to(device)
+                    fence = fence.to(device)
+                    num_fences = torch.tensor(num_fences, device=device)
+
+                    out = dqn[player](player, board, fence, num_fences).cpu()
                     action = out.argmax().item()
 
+            player_position = env.player_positions[player]
             next_state, reward, done = env.step(action)
 
             # Store experience in the replay buffer for the current player
-            replay_buffer[player].add(state, action, reward, next_state[player], done)
+            replay_buffer[player].add(state, env.action_to_index(player_position, action), reward, next_state, done)
 
             # Train the current player's DQN model if there are enough samples in their replay buffer
             if len(replay_buffer[player]) > batch_size:
