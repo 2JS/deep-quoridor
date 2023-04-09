@@ -126,12 +126,12 @@ for episode in trange(num_episodes):
                 with torch.no_grad():
                     player, board, fence, num_fences = state
                     player = torch.tensor(player, device=device).unsqueeze(0)
-                    board = board.to(dtype=torch.float32, device=device)
-                    fence = fence.to(dtype=torch.float32, device=device)
-                    num_fences = torch.tensor(num_fences, dtype=torch.float32, device=device)
+                    board = board.to(dtype=torch.float32, device=device).unsqueeze(0)
+                    fence = fence.to(dtype=torch.float32, device=device).unsqueeze(0)
+                    num_fences = torch.tensor(num_fences, dtype=torch.float32, device=device).unsqueeze(0)
 
                     out = dqn[player](player, board, fence, num_fences).cpu()
-                    action = out.argmax().item()
+                    action = env.index_to_action(player, out.argmax().item())
 
             player_position = env.player_positions[player]
             next_state, reward, done = env.step(action)
