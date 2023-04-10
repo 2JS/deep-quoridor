@@ -88,17 +88,28 @@ class QuoridorEnv:
         # action_data is either a new_position for 'move' or (fence_position, fence_orientation) for 'fence'
         action_type, action_data = action
 
+        this_old_distance = self.distance(self.current_player)
+        that_old_distance = self.distance(1 - self.current_player)
+
         if action_type == "move":
             self.move_pawn(self.current_player, action_data)
             if self.has_won(self.current_player):
                 self.done = True
                 return self.get_state(), 100, True
+            elif self.has_won(1 - self.current_player):
+                self.done = True
+                return self.get_state(), -100, True
         elif action_type == "fence":
             self.place_fence(self.current_player, *action_data)
 
+        this_new_distance = self.distance(self.current_player)
+        that_new_distance = self.distance(1 - self.current_player)
+
         self.current_player = 1 - self.current_player
 
-        return self.get_state(), 0, False
+        reward = (this_old_distance - this_new_distance) - (that_old_distance - that_new_distance)
+
+        return self.get_state(), reward, False
 
     @torch.no_grad()
     def is_blocked(self, position, direction):
