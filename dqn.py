@@ -2,9 +2,12 @@ import random
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
-from quoridor import QuoridorEnv, ActionError  # Replace with your actual environment import
-from model import Model as DQN  # Replace with your actual DQN model import
-from replay_buffer import ReplayBuffer  # Replace with your actual replay buffer import
+from quoridor import (
+    QuoridorEnv,
+    ActionError,
+)
+from model import Model as DQN
+from replay_buffer import ReplayBuffer
 from tqdm import trange
 
 device = torch.device('cuda')
@@ -30,13 +33,23 @@ def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
     rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
     dones = torch.tensor(dones, dtype=torch.float32, device=device)
     # Compute Q-values for current states and next states
-    states = tuple(map(lambda x: torch.stack(x).to(dtype=torch.float32, device=device), zip(*states)))
+    states = tuple(
+        map(
+            lambda x: torch.stack(x).to(dtype=torch.float32, device=device),
+            zip(*states),
+        )
+    )
 
     dqn.train()
 
     q_values = dqn(*states).gather(1, actions.unsqueeze(1))
     with torch.no_grad():
-        next_states = tuple(map(lambda x: torch.stack(x).to(dtype=torch.float32, device=device), zip(*next_states)))
+        next_states = tuple(
+            map(
+                lambda x: torch.stack(x).to(dtype=torch.float32, device=device),
+                zip(*next_states),
+            )
+        )
         next_q_values = target_net(*next_states).max(1)[0].unsqueeze(1)
 
     # Compute target Q-values
@@ -52,7 +65,10 @@ def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
 # Initialize two DQN models and target networks for each player
 dqn = [DQN().to(device), DQN().to(device)]  # Replace with arguments as needed
 target_net = [DQN().to(device), DQN().to(device)]  # Replace with arguments as needed
-optimizer = [optim.Adam(dqn[0].parameters(), lr=learning_rate), optim.Adam(dqn[1].parameters(), lr=learning_rate)]
+optimizer = [
+    optim.Adam(dqn[0].parameters(), lr=learning_rate),
+    optim.Adam(dqn[1].parameters(), lr=learning_rate),
+]
 
 for player in range(2):
     target_net[player].load_state_dict(dqn[player].state_dict())
@@ -79,11 +95,12 @@ for episode in trange(num_episodes):
                     player = torch.tensor(player, device=device).unsqueeze(0)
                     board = board.to(dtype=torch.float32, device=device).unsqueeze(0)
                     fence = fence.to(dtype=torch.float32, device=device).unsqueeze(0)
-                    num_fences = torch.tensor(num_fences, dtype=torch.float32, device=device).unsqueeze(0)
+                    num_fences = torch.tensor(
+                        num_fences, dtype=torch.float32, device=device
+                    ).unsqueeze(0)
 
                     out = dqn[player](player, board, fence, num_fences).cpu()
                     action = env.index_to_action(player, out.argmax().item())
-
 
             player_position = env.player_positions[player]
             try:
@@ -94,12 +111,20 @@ for episode in trange(num_episodes):
                 done = True
 
             # Store experience in the replay buffer for the current player
-            replay_buffer[player].add(state, env.action_to_index(player_position, action), reward, next_state, done)
+            replay_buffer[player].add(
+                state,
+                env.action_to_index(player_position, action),
+                reward,
+                next_state,
+                done,
+            )
 
             # Train the current player's DQN model if there are enough samples in their replay buffer
             if len(replay_buffer[player]) > batch_size:
                 experiences = replay_buffer[player].sample(batch_size)
-                train_dqn(dqn[player], target_net[player], experiences, optimizer[player])
+                train_dqn(
+                    dqn[player], target_net[player], experiences, optimizer[player]
+                )
             else:
                 print(len(replay_buffer[player]))
 
