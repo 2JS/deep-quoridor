@@ -19,63 +19,9 @@ epsilon_decay = 0.995
 target_update_freq = 10
 batch_size = 128
 
-# # Initialize environment, DQN model, and target network
 env = QuoridorEnv()
-# dqn = DQN()  # Replace with arguments as needed
-# target_net = DQN()  # Replace with arguments as needed
-# target_net.load_state_dict(dqn.state_dict())
-# target_net.eval()
-
-# optimizer = optim.Adam(dqn.parameters(), lr=learning_rate)
-# replay_buffer = ReplayBuffer()
-
-# # Training loop
 epsilon = epsilon_start
-# for episode in range(num_episodes):
-#     state = env.reset()
-#     done = False
 
-#     while not done:
-#         # Epsilon-greedy action selection
-#         if random.random() < epsilon:
-#             action = env.sample_action()
-#         else:
-#             with torch.no_grad():
-#                 action = dqn(state).argmax().item()
-
-#         next_state, reward, done = env.step(action)
-#         replay_buffer.add(state, action, reward, next_state, done)
-
-#         # If there are enough samples in the replay buffer, train the DQN model
-#         if len(replay_buffer) > batch_size:
-#             experiences = replay_buffer.sample(batch_size)
-#             states, actions, rewards, next_states, dones = experiences
-
-#             # Compute Q-values for current states and next states
-#             q_values = dqn(states).gather(1, actions.unsqueeze(1))
-#             with torch.no_grad():
-#                 next_q_values = target_net(next_states).max(1)[0].unsqueeze(1)
-
-#             # Compute target Q-values
-#             target_q_values = rewards + (gamma * next_q_values * (1 - dones))
-
-#             # Update DQN model weights
-#             loss = F.mse_loss(q_values, target_q_values)
-#             optimizer.zero_grad()
-#             loss.backward()
-#             optimizer.step()
-
-#         # Update target network weights periodically
-#         if episode % target_update_freq == 0:
-#             target_net.load_state_dict(dqn.state_dict())
-
-#     # Decay epsilon for epsilon-greedy action selection
-#     epsilon = max(epsilon_end, epsilon_decay * epsilon)
-
-# # Save the trained DQN model
-# torch.save(dqn.state_dict(), "trained_dqn.pth")
-
-import torch.nn.functional as F
 
 def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
     states, actions, rewards, next_states, dones = experiences
