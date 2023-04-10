@@ -10,7 +10,8 @@ from model import Model as DQN
 from replay_buffer import ReplayBuffer
 from tqdm import trange
 
-device = torch.device('cuda')
+
+device = torch.device("cpu")
 
 # Set hyperparameters
 num_episodes = 500
