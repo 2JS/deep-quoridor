@@ -215,30 +215,33 @@ class QuoridorEnv:
 
         return paths_exist
 
+    @torch.no_grad()
+    def distance(self, player):
+        visited = torch.full((self.board_size, self.board_size), -1, dtype=torch.int8)
+        queue = deque([self.player_positions[player]])
+        visited[self.player_positions[player]] = 0
+
+        while queue:
+            x, y = queue.popleft()
+
+            if player == 0 and y == self.board_size - 1 or player == 1 and y == 0:
+                return visited[x, y]
+
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if not self.is_blocked((x, y), (dx, dy)) and visited[nx, ny] == -1:
+                    visited[nx, ny] = visited[x, y] + 1
+                    queue.append((nx, ny))
+        else:
+            return -1
+
+
     # Check if there is a path from the player's current position to the opposite side
     @torch.no_grad()
     def paths_exist(self):
-        checked = []
         for player in (0, 1):
-            visited = torch.zeros((self.board_size, self.board_size), dtype=bool)
-            queue = deque([self.player_positions[player]])
-            visited[self.player_positions[player]] = True
-
-            while queue:
-                x, y = queue.popleft()
-
-                if player == 0 and y == self.board_size - 1 or player == 1 and y == 0:
-                    checked.append(player)
-                    break
-
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                    nx, ny = x + dx, y + dy
-                    if not self.is_blocked((x, y), (dx, dy)) and not visited[nx, ny]:
-                        visited[nx, ny] = True
-                        queue.append((nx, ny))
-            else:
+            if self.distance(player) == -1:
                 return False
-
         return True
 
     def action_to_index(self, player_position, action):
