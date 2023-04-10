@@ -78,7 +78,7 @@ for player in range(2):
     target_net[player].eval()
 
 # Initialize separate replay buffers for each player
-replay_buffer = [ReplayBuffer(capacity=1024), ReplayBuffer(capacity=1024)]
+replay_buffer = [ReplayBuffer(capacity=2**13), ReplayBuffer(capacity=2**13)]
 
 # Training loop
 for episode in (tqdm := trange(num_episodes)):
