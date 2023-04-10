@@ -75,7 +75,7 @@ for player in range(2):
     target_net[player].eval()
 
 # Initialize separate replay buffers for each player
-replay_buffer = [ReplayBuffer(capacity=512), ReplayBuffer(512)]
+replay_buffer = [ReplayBuffer(capacity=1024), ReplayBuffer(capacity=1024)]
 
 # Training loop
 for episode in trange(num_episodes):
@@ -87,6 +87,8 @@ for episode in trange(num_episodes):
             # Epsilon-greedy action selection
             if random.random() < epsilon:
                 action = env.sample_action()
+                player_position = env.player_positions[player]
+                next_state, reward, done = env.step(action)
             else:
                 with torch.no_grad():
                     dqn[player].eval()
@@ -100,15 +102,17 @@ for episode in trange(num_episodes):
                     ).unsqueeze(0)
 
                     out = dqn[player](player, board, fence, num_fences).cpu()
-                    action = env.index_to_action(player, out.argmax().item())
 
-            player_position = env.player_positions[player]
-            try:
-                next_state, reward, done = env.step(action)
-            except ActionError:
-                next_state = state
-                reward = -100
-                done = True
+                    player_position = env.player_positions[player]
+
+                    while True:
+                        action = env.index_to_action(player, out.argmax().item())
+                        try:
+                            next_state, reward, done = env.step(action)
+                            break
+                        except ActionError:
+                            out[0, out.argmax().item()] = float("-inf")
+
 
             # Store experience in the replay buffer for the current player
             replay_buffer[player].add(
