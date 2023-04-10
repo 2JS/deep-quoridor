@@ -62,6 +62,8 @@ def train_dqn(dqn, target_net, experiences, optimizer, gamma=0.99):
     loss.backward()
     optimizer.step()
 
+    return loss.item()
+
 
 # Initialize two DQN models and target networks for each player
 dqn = [DQN().to(device), DQN().to(device)]  # Replace with arguments as needed
@@ -79,7 +81,7 @@ for player in range(2):
 replay_buffer = [ReplayBuffer(capacity=1024), ReplayBuffer(capacity=1024)]
 
 # Training loop
-for episode in trange(num_episodes):
+for episode in (tqdm := trange(num_episodes)):
     state = env.reset()
     done = False
 
@@ -127,9 +129,11 @@ for episode in trange(num_episodes):
             # Train the current player's DQN model if there are enough samples in their replay buffer
             if len(replay_buffer[player]) > batch_size:
                 experiences = replay_buffer[player].sample(batch_size)
-                train_dqn(
+                loss = train_dqn(
                     dqn[player], target_net[player], experiences, optimizer[player]
                 )
+
+                tqdm.set_postfix({"loss": loss})
             else:
                 print(len(replay_buffer[player]))
 
