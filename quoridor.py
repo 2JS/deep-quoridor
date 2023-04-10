@@ -95,10 +95,10 @@ class QuoridorEnv:
             self.move_pawn(self.current_player, action_data)
             if self.has_won(self.current_player):
                 self.done = True
-                return self.get_state(), 100, True
+                return self.get_state(), 40, True
             elif self.has_won(1 - self.current_player):
                 self.done = True
-                return self.get_state(), -100, True
+                return self.get_state(), -40, True
         elif action_type == "fence":
             self.place_fence(self.current_player, *action_data)
 
