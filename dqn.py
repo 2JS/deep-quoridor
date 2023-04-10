@@ -13,12 +13,12 @@ from tqdm import trange
 device = torch.device('cuda')
 
 # Set hyperparameters
-num_episodes = 100000
+num_episodes = 500
 learning_rate = 0.001
 gamma = 0.99
 epsilon_start = 1.0
 epsilon_end = 0.01
-epsilon_decay = 0.995
+epsilon_decay = 0.9997
 target_update_freq = 10
 batch_size = 128
 
