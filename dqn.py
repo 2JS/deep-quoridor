@@ -15,7 +15,7 @@ device = torch.device("cpu")
 
 # Set hyperparameters
 num_episodes = 500
-learning_rate = 0.001
+learning_rate = 0.0001
 gamma = 0.99
 epsilon_start = 1.0
 epsilon_end = 0.01
