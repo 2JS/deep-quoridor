@@ -313,6 +313,28 @@ class QuoridorEnv:
 
             return ("fence", random.choice(fences))
 
+    def valid_actions(self, player):
+        x, y = self.player_positions[self.current_player]
+
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+
+        moves = [(x + dx, y + dy) for dx, dy in moves if self.is_valid_move(self.current_player, (x + dx, y + dy))]
+
+        moves = map(lambda action: self.action_to_index(player, action), moves)
+
+        fences = [
+            ((x, y), o)
+            for x in range(self.board_size - 1)
+            for y in range(self.board_size - 1)
+            for o in ("h", "v")
+            if self.is_valid_fence_placement(self.current_player, (x, y), o)
+        ]
+
+        fences = map(lambda action: self.action_to_index(player, action), fences)
+
+        return list(moves) + list(fences)
+
+
     # Check if the player has reached the opposite side
     @torch.no_grad()
     def has_won(self, player):
