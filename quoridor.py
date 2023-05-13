@@ -256,18 +256,19 @@ class QuoridorEnv:
         return True
 
     def action_to_index(self, player_position, action):
+        S = self.board_size - 1
         if action[0] == 'fence':
             _, ((x, y), orientation) = action
             if orientation == 'v':
-                return x * 8 + y
-            return 64 + x * 8 + y
+                return x * S + y
+            return S**2 + x * S + y
         else:
             _, (nx, ny) = action
             x, y = player_position
 
             dx, dy = nx - x, ny - y
 
-        return 128 + self.move_to_index[(dx, dy)]
+        return 2*S**2 + self.move_to_index[(dx, dy)]
 
     def index_to_action(self, player, index):
         S = self.board_size - 1
