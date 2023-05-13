@@ -27,7 +27,7 @@ class QuoridorEnv:
     }
 
     def __init__(self):
-        self.board_size = 9
+        self.board_size = 5
         self.num_fences = 10
         self.reset()
 
