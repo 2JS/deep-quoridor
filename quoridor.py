@@ -270,12 +270,13 @@ class QuoridorEnv:
         return 128 + self.move_to_index[(dx, dy)]
 
     def index_to_action(self, player, index):
-        if index < 64:
-            return 'fence', ((index // 8, index % 8), 'v')
-        index -= 64
-        if index < 64:
-            return 'fence', ((index // 8, index % 8), 'h')
-        index -= 64
+        S = self.board_size - 1
+        if index < S**2:
+            return 'fence', ((index // S, index % S), 'v')
+        index -= S**2
+        if index < S**2:
+            return 'fence', ((index // S, index % S), 'h')
+        index -= S**2
 
         dx, dy = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 2), (0, -2), (2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)][index]
         x, y = self.player_positions[player]
