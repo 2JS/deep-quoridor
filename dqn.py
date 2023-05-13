@@ -80,74 +80,76 @@ for player in range(2):
 # Initialize separate replay buffers for each player
 replay_buffer = [ReplayBuffer(capacity=2**13), ReplayBuffer(capacity=2**13)]
 
-# Training loop
-for episode in (tqdm := trange(num_episodes)):
-    state = env.reset()
-    done = False
+try:
+    # Training loop
+    for episode in (tqdm := trange(num_episodes)):
+        state = env.reset()
+        done = False
 
-    while not done:
-        for player in range(2):
-            # Epsilon-greedy action selection
-            if random.random() < epsilon:
-                action = env.sample_action()
-                player_position = env.player_positions[player]
-                next_state, reward, done = env.step(action)
-            else:
-                with torch.no_grad():
-                    dqn[player].eval()
-
-                    player, board, fence, num_fences = state
-                    player = torch.tensor(player, device=device).unsqueeze(0)
-                    board = board.to(dtype=torch.float32, device=device).unsqueeze(0)
-                    fence = fence.to(dtype=torch.float32, device=device).unsqueeze(0)
-                    num_fences = torch.tensor(
-                        num_fences, dtype=torch.float32, device=device
-                    ).unsqueeze(0)
-
-                    out = dqn[player](player, board, fence, num_fences).cpu()
-
+        while not done:
+            for player in range(2):
+                # Epsilon-greedy action selection
+                if random.random() < epsilon:
+                    action = env.sample_action()
                     player_position = env.player_positions[player]
+                    next_state, reward, done = env.step(action)
+                else:
+                    with torch.no_grad():
+                        dqn[player].eval()
 
-                    while True:
-                        action = env.index_to_action(player, out.argmax().item())
-                        try:
-                            next_state, reward, done = env.step(action)
-                            break
-                        except ActionError:
-                            out[0, out.argmax().item()] = float("-inf")
+                        player, board, fence, num_fences = state
+                        player = torch.tensor(player, device=device).unsqueeze(0)
+                        board = board.to(dtype=torch.float32, device=device).unsqueeze(0)
+                        fence = fence.to(dtype=torch.float32, device=device).unsqueeze(0)
+                        num_fences = torch.tensor(
+                            num_fences, dtype=torch.float32, device=device
+                        ).unsqueeze(0)
+
+                        out = dqn[player](player, board, fence, num_fences).cpu()
+
+                        player_position = env.player_positions[player]
+
+                        while True:
+                            action = env.index_to_action(player, out.argmax().item())
+                            try:
+                                next_state, reward, done = env.step(action)
+                                break
+                            except ActionError:
+                                out[0, out.argmax().item()] = float("-inf")
 
 
-            # Store experience in the replay buffer for the current player
-            replay_buffer[player].add(
-                state,
-                env.action_to_index(player_position, action),
-                reward,
-                next_state,
-                done,
-            )
-
-            # Train the current player's DQN model if there are enough samples in their replay buffer
-            if len(replay_buffer[player]) > batch_size:
-                experiences = replay_buffer[player].sample(batch_size)
-                loss = train_dqn(
-                    dqn[player], target_net[player], experiences, optimizer[player]
+                # Store experience in the replay buffer for the current player
+                replay_buffer[player].add(
+                    state,
+                    env.action_to_index(player_position, action),
+                    reward,
+                    next_state,
+                    done,
                 )
 
-                tqdm.set_postfix({"loss": loss})
-            else:
-                print(len(replay_buffer[player]))
+                # Train the current player's DQN model if there are enough samples in their replay buffer
+                if len(replay_buffer[player]) > batch_size:
+                    experiences = replay_buffer[player].sample(batch_size)
+                    loss = train_dqn(
+                        dqn[player], target_net[player], experiences, optimizer[player]
+                    )
 
-            # Update the target network for the current player periodically
-            if episode % target_update_freq == 0:
-                target_net[player].load_state_dict(dqn[player].state_dict())
+                    tqdm.set_postfix({"loss": loss})
+                else:
+                    print(len(replay_buffer[player]))
 
-            state = next_state
+                # Update the target network for the current player periodically
+                if episode % target_update_freq == 0:
+                    target_net[player].load_state_dict(dqn[player].state_dict())
 
-            if done:
-                break
+                state = next_state
 
-    # Decay epsilon for epsilon-greedy action selection
-    epsilon = max(epsilon_end, epsilon_decay * epsilon)
+                if done:
+                    break
 
+        # Decay epsilon for epsilon-greedy action selection
+        epsilon = max(epsilon_end, epsilon_decay * epsilon)
+except KeyboardInterrupt:
+    pass
 torch.save(dqn[0].state_dict(), "trained_dqn_0.pth")
 torch.save(dqn[1].state_dict(), "trained_dqn_1.pth")
